@@ -73,11 +73,6 @@ type Server struct {
 	// See https://www.ietf.org/archive/id/draft-schinazi-masque-h3-datagram-02.html.
 	EnableDatagrams bool
 
-	// Enable support for WebTransport.
-	// If set to true, QuicConfig.EnableDatagram will be set.
-	// See https://www.ietf.org/archive/id/draft-ietf-webtrans-http3-01.html.
-	EnableWebTransport bool
-
 	port uint32 // used atomically
 
 	mutex     sync.Mutex
@@ -170,7 +165,7 @@ func (s *Server) serveImpl(tlsConf *tls.Config, conn net.PacketConn) error {
 	} else {
 		quicConf = s.QuicConfig.Clone()
 	}
-	if s.EnableDatagrams || s.EnableWebTransport {
+	if s.EnableDatagrams {
 		quicConf.EnableDatagrams = true
 	}
 	if conn == nil {
@@ -220,9 +215,6 @@ func (s *Server) settings() Settings {
 	}
 	if s.EnableDatagrams {
 		settings.EnableDatagrams()
-	}
-	if s.EnableWebTransport {
-		settings.EnableWebTransport()
 	}
 	return settings
 }
@@ -277,7 +269,7 @@ func (s *Server) handleConn(conn ServerConn) {
 				}
 				return
 			}
-			// TODO: should this close CONNECT (WebTransport) requests?
+			// TODO: should this close CONNECT requests?
 			str.Close()
 		}()
 	}
@@ -340,7 +332,7 @@ func (s *Server) handleRequestStream(str RequestStream) error {
 		}
 		rw.Flush()
 		// If the EOF was read by the handler, CancelRead() is a no-op.
-		// TODO(ydnar): should this stream persist for CONNECT (WebTransport) requests?
+		// TODO(ydnar): should this stream persist for CONNECT requests?
 		str.CancelRead(quic.StreamErrorCode(errorNoError))
 	}
 	return nil
